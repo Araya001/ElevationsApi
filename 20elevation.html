@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Place Autocomplete</title>
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta charset="utf-8">
+  <style>
+    /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+
+    #map {
+      height: 100%;
+    }
+    /* Optional: Makes the sample page fill the window. */
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .controls {
+      margin-top: 10px;
+      border: 1px solid transparent;
+      border-radius: 2px 0 0 2px;
+      box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      height: 32px;
+      outline: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #origin-input,
+    #destination-input,
+    #destination-input2,
+    #destination-input3,
+    #destination-input4,
+    #destination-input5,
+    #destination-input6,
+    #destination-input7,
+    #destination-input8,
+    #destination-input9,
+    #destination-input10,
+    #destination-input11,
+    #destination-input12,
+    #destination-input13,
+    #destination-input14,
+    #destination-input15,
+    #destination-input16,
+    #destination-input17,
+    #destination-input18,
+    #destination-input19 {
+      background-color: #fff;
+      font-family: Roboto;
+      font-size: 15px;
+      font-weight: 300;
+      margin-left: 12px;
+      padding: 0 11px 0 13px;
+      text-overflow: ellipsis;
+      width: 200px;
+    }
+
+    #origin-input:focus,
+    #destination-input:focus,
+    #destination-input2:focus,
+    #destination-input3:focus,
+    #destination-input4:focus,
+    #destination-input5:focus,
+    #destination-input6:focus,
+    #destination-input7:focus,
+    #destination-input8:focus,
+    #destination-input9:focus,
+    #destination-input10:focus,
+    #destination-input11:focus,
+    #destination-input12:focus,
+    #destination-input13:focus,
+    #destination-input14:focus,
+    #destination-input15:focus,
+    #destination-input16:focus,
+    #destination-input17:focus,
+    #destination-input18:focus,
+    #destination-input19:focus {
+      border-color: #4d90fe;
+    }
+
+    #mode-selector {
+      color: #fff;
+      background-color: #4d90fe;
+      margin-left: 12px;
+      padding: 5px 11px 0px 11px;
+    }
+
+    #mode-selector label {
+      font-family: Roboto;
+      font-size: 13px;
+      font-weight: 300;
+    }
+
+    .button {
+      background-color: #4CAF50;
+      /* Green */
+      border: none;
+      color: white;
+      padding: 10px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      -webkit-transition-duration: 0.4s;
+      /* Safari */
+      transition-duration: 0.4s;
+    }
+
+    .button-download {
+      background-color: #4d90fe;
+      /* Green */
+      border: none;
+      color: white;
+      padding: 10px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      -webkit-transition-duration: 0.4s;
+      /* Safari */
+      transition-duration: 0.4s;
+    }
+
+    .button1 {
+      box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    }
+
+    .disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+
+  <script src="https://www.google.com/jsapi"></script>
+  <script src="http://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="src/table2csv.js"></script>
+</head>
+
+<body>
+  <input id="origin-input" class="controls" type="text" placeholder="Enter an origin location">
+
+  <input id="destination-input" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input2" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input3" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input4" class="controls" type="text" placeholder="Enter a destination location"><br>
+
+  <input id="destination-input5" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input6" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input7" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input8" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input9" class="controls" type="text" placeholder="Enter a destination location"><br>
+
+  <input id="destination-input10" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input11" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input12" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input13" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input14" class="controls" type="text" placeholder="Enter a destination location"><br>
+
+  <input id="destination-input15" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input16" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input17" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input18" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination-input19" class="controls" type="text" placeholder="Enter a destination location">
+
+  <div id="mode-selector" class="controls" style="display: none;">
+    <input type="radio" name="type" id="changemode-walking">
+    <label for="changemode-walking">Walking</label>
+
+    <input type="radio" name="type" id="changemode-transit">
+    <label for="changemode-transit">Transit</label>
+
+    <input type="radio" name="type" id="changemode-driving" checked="checked">
+    <label for="changemode-driving">Driving</label>
+  </div>
+
+  <br><br><br>
+  <button class="button button1" onclick="skyArrow()">Calculate</button>
+
+  <div id="map" style="height:500px; display: none;"></div>
+  <p>
+    <button id="dl" class="button-download button1 disabled">Download</button>
+  </p>
+  <div class="container">
+    <table id="tab" class="table table-bordered table-striped">
+      <tr>
+        <th>Start Point</th>
+        <th>End Point</th>
+        <th>Distance</th>
+        <th>Ranges</th>
+        <th>Slope</th>
+      </tr>
+    </table>
+
+    <h3>Output:</h3>
+    <div id="out" class="well" style="display: none;"></div>
+  </div>
+  <script>
+    /* global $ */
+    $("#dl").click(function () {
+      $("#tab").table2csv('output', { appendTo: '#out' });
+      $("#tab").table2csv();
+    })
+  </script>
+
+  <script>
+    // This example requires the Places library. Include the libraries=places
+    // parameter when you first load the API. For example:
+    // <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
+
+    var originPoint;
+    var destinationPoint;
+    var directionsDisplay;
+    var directionsService;
+    var range = 100; // distance each range default = 100 m
+    var originPlaceName = null;
+    var destinationPlaceName = null;
+    var placePoint = [];
+    var placeName = [];
+    var timeout = 600;
+    var ins = 0;
+    document.getElementById("dl").disabled = true;
+
+    function initMap() {
+      // directionsDisplay = new google.maps.DirectionsRenderer();
+      var map = new google.maps.Map(document.getElementById('map'), {
+        mapTypeControl: false,
+        center: { lat: 7.8833605, lng: 98.3744039 },
+        zoom: 13
+      });
+
+      new AutocompleteDirectionsHandler(map);
+      // directionsDisplay.setMap(map);
+    }
+
+    /**
+     * @constructor
+    */
+    function AutocompleteDirectionsHandler(map) {
+      this.map = map;
+      this.originPlaceId = null;
+      this.destinationPlaceId = null;
+      this.travelMode = 'DRIVING';
+      var originInput = document.getElementById('origin-input');
+      var destinationInput = document.getElementById('destination-input');
+      var destinationInput2 = document.getElementById('destination-input2');
+      var destinationInput3 = document.getElementById('destination-input3');
+      var destinationInput4 = document.getElementById('destination-input4');
+      var destinationInput5 = document.getElementById('destination-input5');
+      var destinationInput6 = document.getElementById('destination-input6');
+      var destinationInput7 = document.getElementById('destination-input7');
+      var destinationInput8 = document.getElementById('destination-input8');
+      var destinationInput9 = document.getElementById('destination-input9');
+      var destinationInput10 = document.getElementById('destination-input10');
+      var destinationInput11 = document.getElementById('destination-input11');
+      var destinationInput12 = document.getElementById('destination-input12');
+      var destinationInput13 = document.getElementById('destination-input13');
+      var destinationInput14 = document.getElementById('destination-input14');
+      var destinationInput15 = document.getElementById('destination-input15');
+      var destinationInput16 = document.getElementById('destination-input16');
+      var destinationInput17 = document.getElementById('destination-input17');
+      var destinationInput18 = document.getElementById('destination-input18');
+      var destinationInput19 = document.getElementById('destination-input19');
+      var modeSelector = document.getElementById('mode-selector');
+      directionsService = new google.maps.DirectionsService;
+      directionsDisplay = new google.maps.DirectionsRenderer;
+      directionsDisplay.setMap(map);
+
+      var originAutocomplete = new google.maps.places.Autocomplete(
+        originInput);
+      var destinationAutocomplete = new google.maps.places.Autocomplete(
+        destinationInput);
+      var destinationAutocomplete2 = new google.maps.places.Autocomplete(
+        destinationInput2);
+      var destinationAutocomplete3 = new google.maps.places.Autocomplete(
+        destinationInput3);
+      var destinationAutocomplete4 = new google.maps.places.Autocomplete(
+        destinationInput4);
+      var destinationAutocomplete5 = new google.maps.places.Autocomplete(
+        destinationInput5);
+      var destinationAutocomplete6 = new google.maps.places.Autocomplete(
+        destinationInput6);
+      var destinationAutocomplete7 = new google.maps.places.Autocomplete(
+        destinationInput7);
+      var destinationAutocomplete8 = new google.maps.places.Autocomplete(
+        destinationInput8);
+      var destinationAutocomplete9 = new google.maps.places.Autocomplete(
+        destinationInput9);
+      var destinationAutocomplete10 = new google.maps.places.Autocomplete(
+        destinationInput10);
+      var destinationAutocomplete11 = new google.maps.places.Autocomplete(
+        destinationInput11);
+      var destinationAutocomplete12 = new google.maps.places.Autocomplete(
+        destinationInput12);
+      var destinationAutocomplete13 = new google.maps.places.Autocomplete(
+        destinationInput16);
+      var destinationAutocomplete14 = new google.maps.places.Autocomplete(
+        destinationInput14);
+      var destinationAutocomplete15 = new google.maps.places.Autocomplete(
+        destinationInput15);
+      var destinationAutocomplete16 = new google.maps.places.Autocomplete(
+        destinationInput16);
+      var destinationAutocomplete17 = new google.maps.places.Autocomplete(
+        destinationInput17);
+      var destinationAutocomplete18 = new google.maps.places.Autocomplete(
+        destinationInput18);
+      var destinationAutocomplete19 = new google.maps.places.Autocomplete(
+        destinationInput19);
+
+      this.setupClickListener('changemode-walking', 'WALKING');
+      this.setupClickListener('changemode-transit', 'TRANSIT');
+      this.setupClickListener('changemode-driving', 'DRIVING');
+
+      this.setupPlaceChangedListener(originAutocomplete, 'ORIG');
+      this.setupPlaceChangedListener(destinationAutocomplete, 'DEST');
+      this.setupPlaceChangedListener(destinationAutocomplete2, 'DEST2');
+      this.setupPlaceChangedListener(destinationAutocomplete3, 'DEST3');
+      this.setupPlaceChangedListener(destinationAutocomplete4, 'DEST4');
+      this.setupPlaceChangedListener(destinationAutocomplete5, 'DEST5');
+      this.setupPlaceChangedListener(destinationAutocomplete6, 'DEST6');
+      this.setupPlaceChangedListener(destinationAutocomplete7, 'DEST7');
+      this.setupPlaceChangedListener(destinationAutocomplete8, 'DEST8');
+      this.setupPlaceChangedListener(destinationAutocomplete9, 'DEST9');
+      this.setupPlaceChangedListener(destinationAutocomplete10, 'DEST10');
+      this.setupPlaceChangedListener(destinationAutocomplete11, 'DEST11');
+      this.setupPlaceChangedListener(destinationAutocomplete12, 'DEST12');
+      this.setupPlaceChangedListener(destinationAutocomplete13, 'DEST13');
+      this.setupPlaceChangedListener(destinationAutocomplete14, 'DEST14');
+      this.setupPlaceChangedListener(destinationAutocomplete15, 'DEST15');
+      this.setupPlaceChangedListener(destinationAutocomplete16, 'DEST16');
+      this.setupPlaceChangedListener(destinationAutocomplete17, 'DEST17');
+      this.setupPlaceChangedListener(destinationAutocomplete18, 'DEST18');
+      this.setupPlaceChangedListener(destinationAutocomplete19, 'DEST19');
+
+      // this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(originInput);
+      // this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(destinationInput);
+      // this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(modeSelector);
+    }
+
+    // Sets a listener on a radio button to change the filter type on Places
+    // Autocomplete.
+    AutocompleteDirectionsHandler.prototype.setupClickListener = function (id, mode) {
+      var radioButton = document.getElementById(id);
+      var me = this;
+      radioButton.addEventListener('click', function () {
+        me.travelMode = mode;
+        me.route();
+      });
+    };
+
+    AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function (autocomplete, mode) {
+      var me = this;
+      autocomplete.bindTo('bounds', this.map);
+      autocomplete.addListener('place_changed', function () {
+        var place = autocomplete.getPlace();
+        if (!place.place_id) {
+          window.alert("Please select an option from the dropdown list.");
+          return;
+        }
+        // if (mode === 'ORIG') {
+        //   me.originPlaceId = place.place_id;
+        //   originPoint = place.place_id;
+        //   originPlaceName = place.name;
+        // } else if (mode === 'DEST') {
+        //   me.destinationPlaceId = place.place_id;
+        //   destinationPoint = place.place_id;
+        //   destinationPlaceName = place.name;
+        // }
+        // me.route();
+        placePoint.push(place.place_id);
+        placeName.push(place.name);
+      });
+
+    };
+
+    AutocompleteDirectionsHandler.prototype.route = function () {
+      if (!this.originPlaceId || !this.destinationPlaceId) {
+        return;
+      }
+      var me = this;
+
+      this.directionsService.route({
+        origin: { 'placeId': this.originPlaceId },
+        destination: { 'placeId': this.destinationPlaceId },
+        travelMode: this.travelMode
+      }, function (response, status) {
+        if (status === 'OK') {
+          me.directionsDisplay.setDirections(response);
+        } else {
+          window.alert('Directions request failed due to ' + status);
+        }
+      });
+    };
+
+    function elana(start, end, oriName, destName) {
+      var es = new google.maps.ElevationService();
+      if (!start || !end) {
+        return;
+      }
+      var request = {
+        origin: { 'placeId': start },
+        destination: { 'placeId': end },
+        travelMode: 'DRIVING'
+      };
+      this.directionsService.route(request, function (result, status) {
+        if (status == 'OK') {
+          //display the direction on map
+          // directionsDisplay.setDirections(result);
+          //path to cal elevation
+          var path = result.routes[0].overview_path;
+          var samples = Math.round(result.routes[0].legs["0"].distance.value / range);
+          //elavation
+          es.getElevationAlongPath({
+            'path': path,
+            'samples': samples
+          }, function (elevations, status) {
+            if (status !== 'OK') {
+              window.alert('Cannot show elevation: request failed because ' + status);
+              // return;
+              if (status == "OVER_QUERY_LIMIT") {
+                setTimeout(function () {
+                  elana(start, end, oriName, destName);
+                }, (1000));
+              }
+            }
+
+            var table = document.getElementById("tab");
+            var row = table.insertRow(0);
+            var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(1);
+            var cell3 = row.insertCell(2);
+            var cell4 = row.insertCell(3);
+            var cell5 = row.insertCell(4);
+            cell1.innerHTML = oriName + " " + result.routes[0].legs["0"].start_location.toString();
+            cell2.innerHTML = destName + " " + result.routes[0].legs["0"].end_location.toString();
+
+            for (var i = 0; i < elevations.length; i++) {
+              if (elevations[i + 1]) {
+                // console.log("Slope: " + (elevations[i + 1].elevation - elevations[i].elevation) / ranges);
+                var table = document.getElementById("tab");
+                var row = table.insertRow(-1);
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                var cell4 = row.insertCell(3);
+                var cell5 = row.insertCell(4);
+                // cell1.innerHTML = response2.routes[0].legs["0"].start_address;
+                cell1.innerHTML = oriName;
+                // cell2.innerHTML = response2.routes[0].legs["0"].end_address;
+                cell2.innerHTML = destName;
+                cell3.innerHTML = result.routes[0].legs["0"].distance.value;
+                cell4.innerHTML = result.routes[0].legs["0"].distance.value / samples;
+                cell5.innerHTML = (elevations[i + 1].elevation - elevations[i].elevation) / (result.routes[0].legs["0"].distance.value / samples);
+              }
+            }
+          });
+
+        } else {
+          window.alert('Directions request failed due to ' + status);
+          if (status == "OVER_QUERY_LIMIT") {
+            setTimeout(function () {
+              elana(start, end, oriName, destName);
+            }, (1000));
+          }
+        }
+      });
+    }
+
+    function verseQuence() {
+      var instance = 0;
+      // while (instance < placeName.length) {
+      for (var i = 0; i < placePoint.length; i++) {
+        if (ins != i && ins < placeName.length) {
+          // elana(placePoint[instance], placePoint[i+1], placeName[instance], placeName[i+1]);
+          console.log(1);
+          setTimeout(elana, (timeout), placePoint[ins], placePoint[i], placeName[ins], placeName[i]);
+          // break;
+        }
+        if (ins + 1 == placeName.length) {
+          document.getElementById("dl").disabled = false;
+          document.getElementById("dl").classList.remove('disabled');
+        }
+      }
+    }
+
+    function m2U() {
+      var instance = 1;
+      // while (instance < placeName.length) {
+      for (var i = 0; i < placePoint.length; i++) {
+        if (instance != i) {
+          // elana(placePoint[instance], placePoint[i+1], placeName[instance], placeName[i+1]);
+          console.log(1);
+          setTimeout(elana, (timeout), placePoint[instance], placePoint[i], placeName[instance], placeName[i]);
+          // break;
+        }
+      }
+    }
+
+    function nofx() {
+      var instance = 2;
+      // while (instance < placeName.length) {
+      for (var i = 0; i < placePoint.length; i++) {
+        if (instance != i) {
+          // elana(placePoint[instance], placePoint[i+1], placeName[instance], placeName[i+1]);
+          console.log(1);
+          setTimeout(elana, (timeout), placePoint[instance], placePoint[i], placeName[instance], placeName[i]);
+          // break;
+        }
+      }
+    }
+
+    function dimensionShift() {
+      var instance = 3;
+      // while (instance < placeName.length) {
+      for (var i = 0; i < placePoint.length; i++) {
+        if (instance != i) {
+          // elana(placePoint[instance], placePoint[i+1], placeName[instance], placeName[i+1]);
+          console.log(1);
+          setTimeout(elana, (timeout), placePoint[instance], placePoint[i], placeName[instance], placeName[i]);
+          // break;
+        }
+      }
+    }
+
+    function daria() {
+      var instance = 4;
+      // while (instance < placeName.length) {
+      for (var i = 0; i < placePoint.length; i++) {
+        if (instance != i) {
+          // elana(placePoint[instance], placePoint[i+1], placeName[instance], placeName[i+1]);
+          console.log(1);
+          setTimeout(elana, (timeout), placePoint[instance], placePoint[i], placeName[instance], placeName[i]);
+          // break;
+        }
+      }
+    }
+
+    function skyArrow() {
+      //here
+      if (ins < placeName.length) {
+        window.setInterval(function () {
+          verseQuence();
+          ins++;
+        }, 3000);
+      }
+    }
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTT9UOlmNjSStQdUc0GcDXa2cfZG4EdB4&libraries=places&callback=initMap"
+    async defer></script>
+</body>
+
+</html>

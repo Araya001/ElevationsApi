@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Place Autocomplete</title>
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta charset="utf-8">
+  <style>
+    /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+
+    #map {
+      height: 100%;
+    }
+    /* Optional: Makes the sample page fill the window. */
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .controls {
+      margin-top: 10px;
+      border: 1px solid transparent;
+      border-radius: 2px 0 0 2px;
+      box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      height: 32px;
+      outline: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #origin-input,
+    #destination-input,
+    #destination2-input,
+    #destination3-input {
+      background-color: #fff;
+      font-family: Roboto;
+      font-size: 15px;
+      font-weight: 300;
+      margin-left: 12px;
+      padding: 0 11px 0 13px;
+      text-overflow: ellipsis;
+      width: 200px;
+    }
+
+    #origin-input:focus,
+    #destination-input:focus,
+    #destination2-input:focus,
+    #destination3-input:focus {
+      border-color: #4d90fe;
+    }
+
+    #mode-selector {
+      color: #fff;
+      background-color: #4d90fe;
+      margin-left: 12px;
+      padding: 5px 11px 0px 11px;
+    }
+
+    #mode-selector label {
+      font-family: Roboto;
+      font-size: 13px;
+      font-weight: 300;
+    }
+  </style>
+  <script src="https://www.google.com/jsapi"></script>
+  <script src="http://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="src/table2csv.js"></script>
+</head>
+
+<body>
+  <input id="origin-input" class="controls" type="text" placeholder="Enter an origin location">
+
+  <input id="destination-input" class="controls" type="text" placeholder="Enter a destination location">
+
+  <input id="destination2-input" class="controls" type="text" placeholder="Enter a waypoint location">
+
+  <input id="destination3-input" class="controls" type="text" placeholder="Enter a waypoint location">
+
+  <div id="mode-selector" class="controls">
+    <input type="radio" name="type" id="changemode-walking">
+    <label for="changemode-walking">Walking</label>
+
+    <input type="radio" name="type" id="changemode-transit">
+    <label for="changemode-transit">Transit</label>
+
+    <input type="radio" name="type" id="changemode-driving" checked="checked">
+    <label for="changemode-driving">Driving</label>
+  </div>
+
+  <div id="map" style="height:500px;"></div>
+  <div id="elevation_name1"></div>
+  <div id="elevation_chart1"></div>
+  <div id="elevation_name2"></div>
+  <div id="elevation_chart2"></div>
+  <div id="elevation_name3"></div>
+  <div id="elevation_chart3"></div>
+  <div class="jquery-script-clear"></div>
+  </div>
+  </div>
+  <p>
+    <button id="dl" class="btn btn-primary">Download</button>
+  </p>
+  <div class="container">
+    <table id="tab" class="table table-bordered table-striped">
+      <tr>
+        <th>Start Point</th>
+        <th>End Point</th>
+        <th>Distance</th>
+        <th>Ranges</th>
+        <th>Slope</th>
+      </tr>
+    </table>
+
+    <h3>Output:</h3>
+    <div id="out" class="well"></div>
+  </div>
+  <script>
+    /* global $ */
+    $("#dl").click(function () {
+      $("#tab").table2csv('output', { appendTo: '#out' });
+      $("#tab").table2csv();
+    })
+  </script>
+
+  <script>
+    // Load the Visualization API and the columnchart package.
+    google.load('visualization', '1', { packages: ['columnchart'] });
+
+    // Varialbe
+    var samples;
+    var split;
+    var ranges = [];
+    var eRange = 10; //each ranges is about how ? max distance = eRanges x 512
+    var waypts = [];
+    var eDistance;
+    var allDistance = null;
+    var destinationAddr = null;
+    var originAddr = null;
+
+    // This example requires the Places library. Include the libraries=places
+    // parameter when you first load the API. For example:
+    // <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
+
+    function initMap() {
+      var map = new google.maps.Map(document.getElementById('map'), {
+        mapTypeControl: false,
+        center: { lat: 7.8833605, lng: 98.3744039 },
+        zoom: 13
+      });
+
+      new AutocompleteDirectionsHandler(map);
+    }
+
+    /**
+     * @constructor
+    */
+    function AutocompleteDirectionsHandler(map) {
+      this.map = map;
+      this.originPlaceId = null;
+      this.destinationPlaceId = null;
+      this.destinationPlaceId2 = null;
+      this.destinationPlaceId3 = null;
+      this.travelMode = 'DRIVING';
+      var originInput = document.getElementById('origin-input');
+      var destinationInput = document.getElementById('destination-input');
+      var destinationInput2 = document.getElementById('destination2-input');
+      var destinationInput3 = document.getElementById('destination3-input');
+      var modeSelector = document.getElementById('mode-selector');
+      var elevationsService = new google.maps.ElevationService;
+      this.directionsService = new google.maps.DirectionsService;
+      this.directionsDisplay = new google.maps.DirectionsRenderer;
+      this.directionsDisplay.setMap(map);
+
+      var originAutocomplete = new google.maps.places.Autocomplete(
+        originInput);
+      var destinationAutocomplete = new google.maps.places.Autocomplete(
+        destinationInput);
+      var destinationAutocomplete2 = new google.maps.places.Autocomplete(
+        destinationInput2);
+      var destinationAutocomplete3 = new google.maps.places.Autocomplete(
+        destinationInput3, { placeIdOnly: true });
+
+      this.setupClickListener('changemode-walking', 'WALKING');
+      this.setupClickListener('changemode-transit', 'TRANSIT');
+      this.setupClickListener('changemode-driving', 'DRIVING');
+
+      this.setupPlaceChangedListener(originAutocomplete, 'ORIG');
+      this.setupPlaceChangedListener(destinationAutocomplete, 'DEST');
+      this.setupPlaceChangedListener(destinationAutocomplete2, 'DEST2');
+      this.setupPlaceChangedListener(destinationAutocomplete3, 'DEST3');
+
+      this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(originInput);
+      this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(destinationInput);
+      this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(destinationInput2);
+      this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(destinationInput3);
+      this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(modeSelector);
+    }
+
+    // Sets a listener on a radio button to change the filter type on Places
+    // Autocomplete.
+    AutocompleteDirectionsHandler.prototype.setupClickListener = function (id, mode) {
+      var radioButton = document.getElementById(id);
+      var me = this;
+      radioButton.addEventListener('click', function () {
+        me.travelMode = mode;
+        me.route();
+      });
+    };
+
+    AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function (autocomplete, mode) {
+      var me = this;
+      autocomplete.bindTo('bounds', this.map);
+      autocomplete.addListener('place_changed', function () {
+        var place = autocomplete.getPlace();
+        if (!place.place_id) {
+          window.alert("Please select an option from the dropdown list.");
+          return;
+        }
+        if (mode === 'ORIG') {
+          me.originPlaceId = place.place_id;
+          originAddr = place.formatted_address;
+        } else if (mode === 'DEST') {
+          me.destinationPlaceId = place.place_id;
+          destinationAddr = place.formatted_address;
+        } else if (mode === 'DEST2') {
+          me.destinationPlaceId2 = place.place_id;
+          waypts.push({
+            location: place.name,
+            stopover: true
+          });
+          // console.log(place);
+        } else if (mode === 'DEST3') {
+          me.destinationPlaceId3 = place.place_id;
+          waypts.push({
+            location: place.name,
+            stopover: true
+          });
+        }
+        me.route();
+      });
+
+    };
+
+    AutocompleteDirectionsHandler.prototype.route = function () {
+      if (!this.originPlaceId || !this.destinationPlaceId || !this.destinationPlaceId2 || !this.destinationPlaceId3) {
+        return;
+      }
+      var me = this;
+      var route1;
+      var path;
+      var es = new google.maps.ElevationService();
+      var ds = new google.maps.DirectionsService();
+
+      this.directionsService.route({
+        origin: { 'placeId': this.originPlaceId },
+        destination: { 'placeId': this.destinationPlaceId },
+        waypoints: waypts,
+        optimizeWaypoints: true,
+        travelMode: this.travelMode
+      }, function (response, status) {
+        if (status === 'OK') {
+          me.directionsDisplay.setDirections(response);
+          route1 = me.directionsDisplay.getDirections().routes[0];
+          path = route1.overview_path;
+          // split = (response.routes[0].legs["0"].distance.value)/eRange;
+          // samples = Math.round(split);
+          // ranges = (response.routes[0].legs["0"].distance.value)/samples;
+
+          var chartDiv = document.getElementById('elevation_chart');
+          var countDiv = 1;
+          //loop for cal each range
+          for (var i = 0; i < response.routes[0].legs.length; i++) {
+            ds.route({
+              origin: response.routes[0].legs[i].start_location,
+              destination: response.routes[0].legs[i].end_location,
+              travelMode: 'DRIVING'
+            }, function (response1, status) {
+              if (status === 'OK') {
+                var route2 = response1.routes[0];
+                var path2 = route2.overview_path;
+                split = (response1.routes[0].legs["0"].distance.value) / eRange;
+                var samples2 = Math.round(split);
+                ranges[i] = (response1.routes[0].legs["0"].distance.value) / samples2;
+                eDistance = response1.routes[0].legs["0"].distance.value;
+                es.getElevationAlongPath({
+                  'path': path2,
+                  'samples': samples2
+                }, function (elevations, status) {
+                  // plot elevation chart and show slope
+                  var subDiv = document.createElement("div");
+                  console.log("countDiv = " + countDiv);
+                  var columnDiv = document.getElementById('elevation_chart' + countDiv);
+                  var nameDiv = document.getElementById('elevation_name' + countDiv);
+                  if (status !== 'OK') {
+                    window.alert('Cannot show elecations due to ' + status);
+                    return;
+                  }
+                  if (response1.routes[0].legs["0"].start_address == originAddr) {
+                    console.log("A to B");
+                  } else if (response1.routes[0].legs["0"].end_address == destinationAddr) {
+                    console.log("C to D");
+                  } else {
+                    // console.log("B to C");
+                  }
+
+                  // Create a new chart in the elevation_chart DIV.
+                  var chart = new google.visualization.ColumnChart(columnDiv);
+
+                  // Extract the data from which to populate the chart.
+                  // Because the samples are equidistant, the 'Sample'
+                  // column here does double duty as distance along the
+                  // X axis.
+                  var data = new google.visualization.DataTable();
+                  data.addColumn('string', 'Sample');
+                  data.addColumn('number', 'Elevation');
+
+                  //show console for test results
+                  console.log("Start: " + response1.routes[0].legs["0"].start_address);
+                  // console.log(originAddr);
+                  console.log("end: " + response1.routes[0].legs["0"].end_address);
+                  // console.log(destinationAddr);
+                  console.log("Distance in ranges: " + (response1.routes[0].legs["0"].distance.value) / samples2);
+                  for (var j = 0; j < elevations.length; j++) {
+                    data.addRow(['', elevations[j].elevation]);
+                    nameDiv.innerHTML = response1.routes[0].legs["0"].start_address + "<br />" + "to" + "<br />" + response1.routes[0].legs["0"].end_address;;
+                    //calculate slope
+                    if (elevations[j + 1]) {
+                      // console.log("Slope: " + (elevations[i + 1].elevation - elevations[i].elevation) / ((response1.routes[0].legs["0"].distance.value) / samples2));
+                      var table = document.getElementById("tab");
+                      var row = table.insertRow(-1);
+                      var cell1 = row.insertCell(0);
+                      var cell2 = row.insertCell(1);
+                      var cell3 = row.insertCell(2);
+                      var cell4 = row.insertCell(3);
+                      var cell5 = row.insertCell(4);
+                      cell1.innerHTML = response1.routes[0].legs["0"].start_address;
+                      cell2.innerHTML = response1.routes[0].legs["0"].end_address;
+                      cell3.innerHTML = response1.routes[0].legs["0"].distance.value;
+                      cell4.innerHTML = (response1.routes[0].legs["0"].distance.value) / samples2;
+                      cell5.innerHTML = (elevations[j + 1].elevation - elevations[j].elevation) / ((response1.routes[0].legs["0"].distance.value) / samples2);
+                    }
+                  }
+                  console.log("Distance of all: " + response1.routes[0].legs["0"].distance.value);
+
+                  // Draw the chart using the data within its DIV.
+                  chart.draw(data, {
+                    height: 150,
+                    legend: 'none',
+                    titleY: 'Elevation (m)'
+                  });
+                  // chartDiv.appendChild(subDiv);
+                  countDiv++;
+                });
+                // console.log("Distance: "+response1.routes[0].legs["0"].distance.value);
+                // console.log("Each Ranges: "+(response1.routes[0].legs["0"].distance.value)/samples2);
+              }
+              else {
+                window.alert('Derections request failed due to ' + status);
+              }
+            });
+            // console.log("Start: "+response.routes[0].legs[i].start_address);
+            // console.log("end: "+response.routes[0].legs[i].end_address);
+            // console.log("Each Ranges: "+response.routes[0].legs[i].distance.value);
+          }
+
+          // es.getElevationAlongPath({
+          //     'path': path,
+          //     'samples': samples
+          // }, plotElevation);
+          // // console.log("ok");
+          // console.log("Distance: "+response.routes[0].legs["0"].distance.value);
+          // console.log("Each Ranges: "+ranges);
+          // console.log(split);
+          // console.log(samples);
+          countDiv = 1;
+          allDistance = (response.routes[0].legs["0"].distance.value + response.routes[0].legs["1"].distance.value + response.routes[0].legs["2"].distance.value);
+          var table = document.getElementById("tab");
+          var row = table.insertRow(0);
+          var cell1 = row.insertCell(0);
+          cell1.innerHTML = "all distance : " + (response.routes[0].legs["0"].distance.value + response.routes[0].legs["1"].distance.value + response.routes[0].legs["2"].distance.value);
+        } else {
+          window.alert('Directions request failed due to ' + status);
+        }
+      });
+    };
+
+    function plotElevation(elevations, status) {
+      var chartDiv = document.getElementById('elevation_chart');
+      if (status !== 'OK') {
+        // Show the error code inside the chartDiv.
+        chartDiv.innerHTML = 'Cannot show elevation: request failed because ' +
+          status;
+        return;
+      }
+      // Create a new chart in the elevation_chart DIV.
+      var chart = new google.visualization.ColumnChart(chartDiv);
+
+      // Extract the data from which to populate the chart.
+      // Because the samples are equidistant, the 'Sample'
+      // column here does double duty as distance along the
+      // X axis.
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Sample');
+      data.addColumn('number', 'Elevation');
+      // data.addColumn('number', 'Resolution');
+      // console.log("Distance: "+eDistance);
+      // console.log("Each Ranges: "+ranges);
+      for (var i = 0; i < elevations.length; i++) {
+        data.addRow(['', elevations[i].elevation]);
+        // console.log(elevations[i].elevation);
+        if (elevations[i + 1]) {
+          console.log("Slope: " + (elevations[i + 1].elevation - elevations[i].elevation) / ranges);
+          console.log("Each Ranges: " + ranges);
+          // console.log(i);
+        }
+      }
+      console.log("##################################");
+
+      // Draw the chart using the data within its DIV.
+      chart.draw(data, {
+        height: 150,
+        legend: 'none',
+        titleY: 'Elevation (m)'
+      });
+    }
+
+    function plotChart() {
+      var chartDiv = document.getElementById('elevation_chart');
+      // Create a new chart in the elevation_chart DIV.
+      var chart = new google.visualization.ColumnChart(chartDiv);
+
+      // Extract the data from which to populate the chart.
+      // Because the samples are equidistant, the 'Sample'
+      // column here does double duty as distance along the
+      // X axis.
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Sample');
+      data.addColumn('number', 'Elevation');
+      // data.addColumn('number', 'Resolution');
+      // console.log("Distance: "+eDistance);
+      // console.log("Each Ranges: "+ranges);
+      for (var i = 0; i < elevations.length; i++) {
+        data.addRow(['', elevations[i].elevation]);
+        // console.log(elevations[i].elevation);
+        if (elevations[i + 1]) {
+          console.log("Slope: " + (elevations[i + 1].elevation - elevations[i].elevation) / ranges);
+          console.log("Each Ranges: " + ranges);
+          // console.log(i);
+        }
+      }
+      // Draw the chart using the data within its DIV.
+      chart.draw(data, {
+        height: 150,
+        legend: 'none',
+        titleY: 'Elevation (m)'
+      });
+    }
+
+    function eachElecation(elevations, status) {
+      if (status !== 'OK') {
+        window.alert('Cannot show elecations due to ' + status);
+        return;
+      }
+    }
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTT9UOlmNjSStQdUc0GcDXa2cfZG4EdB4&libraries=places&callback=initMap"
+    async defer></script>
+</body>
+
+</html>
