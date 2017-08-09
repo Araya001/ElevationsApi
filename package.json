@@ -1,0 +1,22 @@
+{
+  "name": "elana-prayer",
+  "version": "1.0.0",
+  "description": "\"# ElevationsApi\" \r =====================\r get elevation result from google services and can export it as .csv file",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plzpeacez/ElevationsApi.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/plzpeacez/ElevationsApi/issues"
+  },
+  "homepage": "https://github.com/plzpeacez/ElevationsApi#readme",
+  "dependencies": {
+    "express": "^4.15.4"
+  }
+}

@@ -1,18 +1,22 @@
-FROM tutum/lamp:latest
+FROM node:latest
 
-RUN rm -fr /app && git clone https://github.com/plzpeacez/ElevationsApi.git /app
+# WORKDIR /usr/src/
+RUN git clone https://github.com/plzpeacez/ElevationsApi.git
+RUN cd ElevationsApi
 
-EXPOSE 80 3306
+WORKDIR /ElevationsApi
+# ADD ./config.json /ElevationsApi/
 
-CMD ["/run.sh"]
+RUN npm install
 
-#docker build -t username/my-lamp-app .
-#docker build -t plzpeacez/my-lamp-app .
-#And test it:
+# Bundle app source
+# COPY . /usr/src/app
 
-#docker run -d -p 80:80 -p 3306:3306 username/my-lamp-app
-#docker run --name lamp-app -d -p 80:80 -p 3306:3306 plzpeacez/my-lamp-app
-#Test your deployment:
+EXPOSE 3000
+CMD [ "node", "server.js" ]
 
-#curl http://localhost/
-#That's it!
+#$ docker build -t <your username>/node-web-app .
+#$ docker build -t plzpeacez/node-elevation .
+
+#$ docker run -p 49160:8080 -d <your username>/node-web-app
+#$ docker run --name elevation -p 80:3000 -dit plzpeacez/node-elevation
